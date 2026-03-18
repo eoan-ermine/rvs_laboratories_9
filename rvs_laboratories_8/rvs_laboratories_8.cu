@@ -10,14 +10,38 @@
     }                                                                          \
   } while (0)
 
+#define value(arr, i, j, k) arr[((i) * width + (j)) * depth + (k)]
+#define in(i, j, k) value(input, i, j, k)
+#define out(i, j, k) value(output, i, j, k)
+
 __global__ void stencil(float *output, float *input, int width, int height,
                         int depth) {
-  //@@ добавьте свой код сюда
+  int i = blockIdx.y * blockDim.y + threadIdx.y;
+  int j = blockIdx.x * blockDim.x + threadIdx.x;
+  int k = blockIdx.z * blockDim.z + threadIdx.z;
+
+  if (i <= 0 || i >= height - 1 ||
+      j <= 0 || j >= width - 1 ||
+      k <= 0 || k >= depth - 1) {
+    return;
+  }
+
+  float res = in(i, j, k + 1) + in(i, j, k - 1) + in(i, j + 1, k) +
+              in(i, j - 1, k) + in(i + 1, j, k) + in(i - 1, j, k) -
+              6 * in(i, j, k);
+  out(i, j, k) = max(min(res, 1.0f), 0.0f);
 }
 
 static void launch_stencil(float *deviceOutputData, float *deviceInputData,
                            int width, int height, int depth) {
-  //@@ добавьте свой код сюда
+  dim3 blockDim(16, 16, 1);
+  dim3 gridDim((width + blockDim.x - 1) / blockDim.x,
+               (height + blockDim.y - 1) / blockDim.y,
+               (depth + blockDim.z - 1) / blockDim.z);
+
+  stencil<<<gridDim, blockDim>>>(deviceOutputData, deviceInputData,
+                                 width, height, depth);
+  cudaDeviceSynchronize();
 }
 
 int main(int argc, char *argv[]) {
