@@ -4,6 +4,7 @@
 *.log
 *.synctex.gz
 *.toc
+_minted/
 
 # Prerequisites
 *.d
